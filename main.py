@@ -4,7 +4,6 @@ import pandas as pd
 
 st.set_page_config(layout="wide")
 
-name = "Cris"
 OPTIONS = [
     "Food", "Transportation", "Clothes",
     "Personal Care", "Travel",
@@ -29,10 +28,25 @@ if "transaction_list" not in st.session_state:
 if "total_expenses" not in st.session_state:
     st.session_state.total_expenses = 0
 
+if "account_info" not in st.session_state:
+    st.session_state.account_info = {"name": "Cris Bustenera", "age": 19, "course": "BSIT", "expenses": st.session_state.total_expenses}
+
+if "date_input" not in st.session_state:
+    st.session_state.date_input = "today"
+
+if "upload_image" not in st.session_state:
+    st.session_state.upload_image = None
+
+if "saved_image" not in st.session_state:
+    st.session_state.saved_image = "dacshund3.jpg"
+
+if "editing" not in st.session_state:
+    st.session_state.editing = False
 
 def handle_submit():
     expense_type = st.session_state.type_input
     amount = st.session_state.amount_input
+    date = st.session_state.date_input
 
     if not expense_type:
         st.toast("Please select a type first")
@@ -51,7 +65,7 @@ def handle_submit():
     )
 
     st.session_state.transaction_list.append(
-        {"Type": expense_type, "Amount": amount}
+        {"Type": expense_type, "Amount": amount, "Date": date}
     )
 
     st.toast("Expense Added Successfully!")
@@ -101,6 +115,12 @@ def get_total_expenses():
         total += st.session_state.transaction_list[n]["Amount"]
     return total
 
+def save_image():
+    if st.session_state.upload_image is not None:
+        st.session_state.saved_image = st.session_state.upload_image
+
+def edit_account():
+    st.session_state.editing = not st.session_state.editing
 
 nav1, nav2, nav3, nav4, nav5 = st.columns(5, gap="small")
 
@@ -110,14 +130,14 @@ if nav1.button("Dashboard", use_container_width=True):
 if nav2.button("Transaction", use_container_width=True):
     st.session_state.page = "Transaction"
 
-if nav5.button("About", use_container_width=True):
-    st.session_state.page = "About"
+if nav5.button("Account", use_container_width=True):
+    st.session_state.page = "Account"
 
 st.divider()
 
 if st.session_state.page == "Dashboard":
 
-    st.title(f"Welcome, {name}")
+    st.title(f"Welcome, {st.session_state.account_info['name']}")
 
     col1, col2 = st.columns(2)
 
@@ -161,6 +181,8 @@ elif st.session_state.page == "Transaction":
 
     col1.text_input("Amount", key="amount_input")
 
+    st.session_state.date_input = col1.date_input("Date", "today")
+
     col1.button(
         "Add",
         on_click=handle_submit,
@@ -191,7 +213,33 @@ elif st.session_state.page == "Transaction":
         else:
             clear_expenses()
 
-elif st.session_state.page == "About":
+elif st.session_state.page == "Account":
+    st.title("Account Page")
+    st.subheader("Profile")
+    col1, col2 = st.columns(2, vertical_alignment="center")
+    sub1, sub2, sub3 = col1.columns([1,2,1])
 
-    st.title("About Page")
-    st.write("Simple expense tracker built with Streamlit.")
+    if st.session_state.saved_image is not None:
+        sub2.image(st.session_state.saved_image, width=350)
+
+    if not st.session_state.editing:
+        col2.subheader("Account Information")
+        col2.write(f"Name: {st.session_state.account_info['name']}")
+        col2.write(f"Age: {st.session_state.account_info['age']}")
+        col2.write(f"Course: {st.session_state.account_info['course']}")
+        col2.write(f"Expenses: {st.session_state.total_expenses:,.2f}")
+        col2.button("Edit Account", on_click=edit_account)
+
+    else: 
+        col1.file_uploader("Attach an Image", type=["jpeg", "png", "jpg"], key="upload_image", on_change=save_image)
+        col2.subheader("Edit Account")
+        new_name = col2.text_input("Name", value=st.session_state.account_info['name'])
+        new_age = col2.text_input("Age", value=st.session_state.account_info['age'])
+        new_course = col2.text_input("Course", value=st.session_state.account_info['course'])
+
+        if col2.button("Save changes"):
+            st.session_state.account_info['name'] = new_name
+            st.session_state.account_info['age'] = new_age
+            st.session_state.account_info['course'] = new_course
+            st.session_state.editing = False
+            st.rerun()
